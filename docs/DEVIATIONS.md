@@ -4,6 +4,9 @@ The golden files in `testdata/golden/` are the output of beautiful-mermaid.
 Where this port differs, the difference belongs here — either as a gap still
 to close, or as a deliberate choice.
 
+All four sequence diagram fixtures match the reference byte for byte. The
+gaps below are all in the flowchart renderer.
+
 ## Gaps still to close
 
 Each of these is a skipped fixture in `TestGolden`. Closing one means deleting

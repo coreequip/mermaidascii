@@ -84,3 +84,45 @@ func cornersFor(s Shape, useASCII bool) corners {
 	}
 	return c.unicode
 }
+
+// dashed is the line character of a dashed message.
+func (c charset) dashed() rune {
+	if c.horizontal == '-' {
+		return '.'
+	}
+	return '╌'
+}
+
+// divider is the line a block divider is drawn with.
+//
+// In ASCII mode this is a plain dash, not the dot that marks a dashed
+// message: a divider spans the whole frame, and a row of dots there reads as
+// a torn edge rather than a separator.
+func (c charset) divider() rune {
+	if c.horizontal == '-' {
+		return '-'
+	}
+	return '╌'
+}
+
+// messageHead is the arrowhead of a sequence message. A filled head means the
+// call was synchronous, an open one that it was not — a distinction Mermaid
+// makes with ->> against ->.
+func (c charset) messageHead(h ArrowHead, rightwards bool) rune {
+	if c.horizontal == '-' {
+		if rightwards {
+			return '>'
+		}
+		return '<'
+	}
+	switch {
+	case h == FilledHead && rightwards:
+		return '▶'
+	case h == FilledHead:
+		return '◀'
+	case rightwards:
+		return '▷'
+	default:
+		return '◁'
+	}
+}

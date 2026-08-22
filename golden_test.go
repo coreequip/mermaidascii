@@ -24,7 +24,7 @@ var notYet = map[string]string{
 // TestGolden compares the rendered output with the output of the reference
 // implementation, byte for byte.
 func TestGolden(t *testing.T) {
-	inputs, err := filepath.Glob("testdata/input/flow-*.mmd")
+	inputs, err := filepath.Glob("testdata/input/*.mmd")
 	if err != nil || len(inputs) == 0 {
 		t.Fatalf("no fixtures found: %v", err)
 	}

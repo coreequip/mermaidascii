@@ -57,6 +57,14 @@ func Render(src string, opts ...Option) (string, error) {
 		o(&cfg)
 	}
 
+	if isSequence(src) {
+		s, err := ParseSequence(src)
+		if err != nil {
+			return "", err
+		}
+		return renderSequence(s, cfg), nil
+	}
+
 	g, err := Parse(src)
 	if err != nil {
 		return "", err

@@ -101,7 +101,16 @@ Flowcharts — `flowchart` or `graph`, direction `LR`, `RL`, `TD`, `TB`, `BT`:
 - chaining (`A --> B --> C`) and parallel links (`A & B --> C & D`)
 - `<br>` in labels becomes a line break
 
-Not yet: subgraphs, sequence diagrams, class and ER diagrams, styling. See
+Sequence diagrams — `sequenceDiagram`:
+
+- `participant A as Alice` and `actor B`
+- arrows `->`, `-->`, `->>`, `-->>`, `-)`, `--)`, `-x`, `--x`
+- activation with `->>+` and `-->>-`
+- blocks `loop`, `alt` / `else`, `opt`, `par` / `and`, `critical`, `break`, `rect`
+- `Note left of A:`, `Note right of A:`, `Note over A,B:`
+- messages an actor sends to itself, drawn as a loop beside its lifeline
+
+Not yet: subgraphs, class and ER diagrams, styling. See
 [docs/DEVIATIONS.md](docs/DEVIATIONS.md) for the current gaps and how output
 differs from the reference implementation.
 
