@@ -9,16 +9,17 @@ to close, or as a deliberate choice.
 Each of these is a skipped fixture in `TestGolden`. Closing one means deleting
 its line from `notYet` in `golden_test.go` and watching the test go green.
 
-**Edge bundling** — `flow-multiroot`, `flow-edge-labels`.
-When several edges run into the same node, the reference merges them before
-they arrive: they meet at a junction and share the last stretch of line. This
-port draws each edge separately, so the lines run in parallel instead of
-joining. Upstream this is `edge-bundling.ts`.
-
 **Shape-specific sizes** — `flow-shapes`.
-Stadium and hexagon nodes are drawn slightly wider upstream, and a stadium is
-one row taller. Every shape here is measured as a rectangle; only the corner
+Upstream gives stadium and subroutine nodes two columns of border on each
+side instead of one, which makes them a character wider, and the row of boxes
+one taller. Here every shape is measured as a rectangle and only its corner
 characters differ.
+
+Attempted and reverted: widening the border alone is not enough. Edges attach
+to grid cells in this port, to box edges upstream, so a two-column border puts
+the arrowhead inside the box. Doing it properly means moving edge attachment
+from cells to box outlines — worth doing, but not a side effect of a width
+change.
 
 **Self edges** — `flow-selfloop`.
 `A --> A` needs a small loop routed around the node. Currently the path

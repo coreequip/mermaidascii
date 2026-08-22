@@ -14,8 +14,7 @@ import (
 // what is missing instead of quietly passing over it. Removing a line here is
 // how a feature is declared finished.
 var notYet = map[string]string{
-	"flow-multiroot":    "edge bundling: two edges into one node should merge before it",
-	"flow-edge-labels":  "edge bundling and label placement beside merged lines",
+	"flow-edge-labels":  "label placement — upstream reserves a row, this port squeezes labels beside the line",
 	"flow-shapes":       "shape-specific box sizes — stadium and hexagon are drawn wider",
 	"flow-selfloop":     "self edges are not routed around their node yet",
 	"flow-cycle":        "back edges pick a different attachment point",

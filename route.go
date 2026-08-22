@@ -145,9 +145,25 @@ type route struct {
 }
 
 // routeEdges finds a way for every edge.
+//
+// Bundles first: where several edges run into the same node they share the
+// last stretch of the way. Whatever is left over is routed on its own.
 func (l *layout) routeEdges() []*route {
 	routes := make([]*route, 0, len(l.g.Edges))
+	taken := map[*Edge]bool{}
+
+	for _, b := range l.analyzeBundles() {
+		l.bundles = append(l.bundles, b)
+		routes = append(routes, l.routeBundle(b)...)
+		for _, e := range b.edges {
+			taken[e] = true
+		}
+	}
+
 	for _, e := range l.g.Edges {
+		if taken[e] {
+			continue
+		}
 		from, ok := l.nodes[e.From]
 		if !ok {
 			continue

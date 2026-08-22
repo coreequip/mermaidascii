@@ -20,6 +20,7 @@ func renderFlowchart(g *Graph, cfg Config) string {
 	for _, r := range routes {
 		l.drawRoute(c, r, cs)
 	}
+	l.drawJunctions(c, cs)
 	for _, p := range l.order {
 		c.draw(drawNode(p.node.Label, p.node.Shape, p.box, cs, cfg.UseASCII), p.draw.x, p.draw.y)
 	}
@@ -32,14 +33,18 @@ func renderFlowchart(g *Graph, cfg Config) string {
 
 // growForPaths makes sure every grid cell an edge passes through has a size,
 // so that the drawing is wide and tall enough to hold the detour.
+//
+// A cell no node occupies gets half the node spacing. One character would be
+// enough to draw a line through, but a detour squeezed into a single column
+// runs so close past the boxes that it reads as if it touched them.
 func (l *layout) growForPaths(routes []*route) {
 	for _, r := range routes {
 		for _, p := range r.path {
 			if _, ok := l.colWidth[p.x]; !ok {
-				l.colWidth[p.x] = 1
+				l.colWidth[p.x] = l.cfg.PaddingX / 2
 			}
 			if _, ok := l.rowHeight[p.y]; !ok {
-				l.rowHeight[p.y] = 1
+				l.rowHeight[p.y] = l.cfg.PaddingY / 2
 			}
 		}
 	}
@@ -274,6 +279,54 @@ func (l *layout) overlapsNode(x, y, n int) bool {
 		if x < p.draw.x+p.box.w && x+n > p.draw.x {
 			return true
 		}
+	}
+	return false
+}
+
+// drawJunctions sets the character where bundled edges meet.
+//
+// Which one it is follows from the lines that actually arrive there, not from
+// the bundle's shape: three lines meeting need a T, four a cross, and reading
+// them off the canvas gets every case right without enumerating them.
+func (l *layout) drawJunctions(c *canvas, cs charset) {
+	for _, b := range l.bundles {
+		p := l.center(b.junction)
+		up, down := isLine(c.at(p.x, p.y-1), cs), isLine(c.at(p.x, p.y+1), cs)
+		left, right := isLine(c.at(p.x-1, p.y), cs), isLine(c.at(p.x+1, p.y), cs)
+
+		switch {
+		case up && down && left && right:
+			c.set(p.x, p.y, cs.cross)
+		case up && down && right:
+			c.set(p.x, p.y, orCross(cs.teeRight, cs))
+		case up && down && left:
+			c.set(p.x, p.y, orCross(cs.teeLeft, cs))
+		case left && right && down:
+			c.set(p.x, p.y, orCross(cs.teeDown, cs))
+		case left && right && up:
+			c.set(p.x, p.y, orCross(cs.teeUp, cs))
+		}
+	}
+}
+
+// orCross falls back to the cross where a character set has no T-pieces.
+// ASCII has none, because a "+" cannot be told apart from a corner — but
+// where lines genuinely cross, the "+" is exactly right.
+func orCross(r rune, cs charset) rune {
+	if r == 0 {
+		return cs.cross
+	}
+	return r
+}
+
+// isLine reports whether a character is part of a drawn line.
+func isLine(r rune, cs charset) bool {
+	switch r {
+	case cs.horizontal, cs.vertical, cs.dottedH, cs.dottedV, cs.thickH, cs.thickV,
+		cs.cornerTL, cs.cornerTR, cs.cornerBL, cs.cornerBR,
+		cs.teeUp, cs.teeDown, cs.teeLeft, cs.teeRight, cs.cross,
+		cs.arrowUp, cs.arrowDown, cs.arrowLeft, cs.arrowRight:
+		return r != 0
 	}
 	return false
 }

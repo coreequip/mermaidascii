@@ -33,6 +33,8 @@ type layout struct {
 	rowHeight map[int]int
 	// width and height are the size of the finished drawing in characters.
 	width, height int
+	// bundles are the edge groups that share a stretch of path.
+	bundles []*bundle
 }
 
 // levelStep is the grid distance between two levels. Three cells for a node
