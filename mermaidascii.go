@@ -26,6 +26,12 @@ type Config struct {
 	PaddingX, PaddingY int
 	// Padding is the space between a label and its box border.
 	Padding int
+	// MaxWidth is the widest a flowchart may be, in cells; 0 means no limit.
+	// A wider flowchart is narrowed step by step: labels break at word
+	// boundaries, then the nodes move closer, then labels touch their
+	// borders. If that is still not enough, the narrowest drawing is
+	// returned. Sequence diagrams are not affected.
+	MaxWidth int
 }
 
 // DefaultConfig matches the spacing of the reference implementation.
@@ -47,6 +53,10 @@ func WithSpacing(x, y int) Option {
 // WithPadding sets the space between a label and its box border.
 func WithPadding(p int) Option { return func(c *Config) { c.Padding = p } }
 
+// WithMaxWidth limits the width of a flowchart to n cells; see
+// Config.MaxWidth.
+func WithMaxWidth(n int) Option { return func(c *Config) { c.MaxWidth = n } }
+
 // Render draws Mermaid source as a diagram.
 //
 // The diagram type is taken from the opening line. Anything that is not a
@@ -65,11 +75,7 @@ func Render(src string, opts ...Option) (string, error) {
 		return renderSequence(s, cfg), nil
 	}
 
-	g, err := Parse(src)
-	if err != nil {
-		return "", err
-	}
-	return renderFlowchart(g, cfg), nil
+	return renderFlowchartWithin(src, cfg)
 }
 
 // charsetFor picks the character set a config asks for.

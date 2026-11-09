@@ -77,6 +77,7 @@ mermaidascii -ascii -x 3 diagram.mmd
 | `-ascii` | draw with `+ - |` instead of box-drawing characters |
 | `-x`, `-y` | space between nodes, in characters (default 5) |
 | `-padding` | space between a label and its border (default 1) |
+| `-max-width` | narrow a wider flowchart to this many columns (default 0, no limit) |
 
 ## Library
 
@@ -89,6 +90,21 @@ out, err := mermaidascii.Render(src,
 
 `Render` is deterministic: the same source always yields the same drawing,
 which makes the output safe to commit and to compare in tests.
+
+### Fitting a width
+
+`WithMaxWidth(n)` keeps a flowchart within `n` columns, for a terminal or a
+page. A wider flowchart is narrowed in steps, each adding to the one before,
+and the first that fits is returned:
+
+1. node labels break at word boundaries, no line wider than its longest word
+2. the space between nodes shrinks to 2
+3. labels touch their borders
+
+If even that is too wide, the narrowest drawing comes back; compare
+`mermaidascii.Width(out)` against your limit to find out. The layout
+direction is never changed — `LR` stays `LR`. Sequence diagrams are not
+narrowed.
 
 ## What it understands
 

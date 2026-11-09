@@ -3,6 +3,7 @@
 //	mermaidascii diagram.mmd
 //	cat diagram.mmd | mermaidascii
 //	mermaidascii -ascii -x 3 diagram.mmd
+//	mermaidascii -max-width 80 diagram.mmd
 package main
 
 import (
@@ -26,6 +27,7 @@ func run() error {
 	x := flag.Int("x", 5, "horizontal space between nodes")
 	y := flag.Int("y", 5, "vertical space between nodes")
 	pad := flag.Int("padding", 1, "space between a label and its border")
+	maxW := flag.Int("max-width", 0, "narrow a wider flowchart to this many columns (0: no limit)")
 	flag.Parse()
 
 	src, err := readInput(flag.Args())
@@ -36,6 +38,7 @@ func run() error {
 	opts := []mermaidascii.Option{
 		mermaidascii.WithSpacing(*x, *y),
 		mermaidascii.WithPadding(*pad),
+		mermaidascii.WithMaxWidth(*maxW),
 	}
 	if *ascii {
 		opts = append(opts, mermaidascii.WithASCII())
