@@ -18,7 +18,8 @@ func Width(drawing string) int {
 }
 
 // narrowSpacing is the node spacing the second narrowing step falls back to.
-// Below two cells an edge label no longer fits between neighbouring boxes.
+// Below two cells the line between neighbouring boxes is barely longer than
+// its attachment and arrowhead and no longer reads as an edge.
 const narrowSpacing = 2
 
 // narrowingSteps are tried in order on a flowchart that is wider than

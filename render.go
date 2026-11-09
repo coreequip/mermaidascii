@@ -10,6 +10,9 @@ func renderFlowchart(g *Graph, cfg Config) string {
 	l := doLayout(g, cfg)
 	routes := l.routeEdges()
 	l.growForPaths(routes)
+	for _, r := range routes {
+		l.placeLabel(r)
+	}
 	l.toDrawing()
 
 	cs := charsetFor(cfg)
@@ -227,45 +230,132 @@ func teeFor(d dir, cs charset) rune {
 	return cs.cross
 }
 
-// drawLabel writes an edge label next to its line.
+// placeLabel picks the stretch of path an edge label goes on and widens the
+// grid so the label fits there. This is determineLabelLine from upstream.
 //
-// Which side counts as "next to" depends on how the line runs there: a
-// vertical line takes the label at its side, a horizontal one above it.
-// Candidates are tried in order and the first that fits wins; if none does,
-// the label is left out rather than drawn over the diagram.
+// A stretch qualifies when its columns add up to the label's width. The
+// last qualifying one wins, and the first stretch only as a fallback: near
+// the source, edges from the same node still run together. If no stretch is
+// wide enough, the widest is taken. Either way its middle column grows to
+// the label plus a cell on each side, so the label never has to be dropped.
+func (l *layout) placeLabel(r *route) {
+	n := labelWidth(r.edge.Label)
+	if n == 0 || len(r.path) < 2 {
+		return
+	}
+
+	best, found := -1, false
+	for _, firstToo := range []bool{false, true} {
+		for i := len(r.path) - 1; i >= 1; i-- {
+			if (i > 1 || firstToo) && l.stretchWidth(r.path[i-1], r.path[i]) >= n {
+				best, found = i, true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		widest := -1
+		for i := 1; i < len(r.path); i++ {
+			if w := l.stretchWidth(r.path[i-1], r.path[i]); w > widest {
+				best, widest = i, w
+			}
+		}
+	}
+
+	a, b := r.path[best-1], r.path[best]
+	col := l.labelColumn(min(a.x, b.x), max(a.x, b.x))
+	l.colWidth[col] = max(l.colWidth[col], n+2)
+	r.labelLine = [2]gridPos{a, b}
+}
+
+// labelColumn picks the column between lo and hi to widen for a label: the
+// free column closest to the middle.
+//
+// Deliberately not upstream, which always takes the middle column. When
+// that column belongs to a node, the node grows with it: upstream keeps
+// drawing the box at its own size and leaves a gap before the edge's
+// attachment, and since boxes here fill their grid cells, the box would
+// widen and the label land on its border. A column no node spans widens
+// only the space between nodes. Only if there is none does the middle one
+// serve, as upstream.
+func (l *layout) labelColumn(lo, hi int) int {
+	mid := lo + (hi-lo)/2
+	best := -1
+	for x := lo; x <= hi; x++ {
+		if l.nodeInColumn(x) {
+			continue
+		}
+		if best < 0 || abs(x-mid) < abs(best-mid) {
+			best = x
+		}
+	}
+	if best < 0 {
+		return mid
+	}
+	return best
+}
+
+// nodeInColumn reports whether any node spans grid column x.
+func (l *layout) nodeInColumn(x int) bool {
+	for _, p := range l.order {
+		if x >= p.pos.x && x < p.pos.x+3 {
+			return true
+		}
+	}
+	return false
+}
+
+// stretchWidth adds up the widths of the columns a stretch of path spans.
+func (l *layout) stretchWidth(a, b gridPos) int {
+	w := 0
+	for x := min(a.x, b.x); x <= max(a.x, b.x); x++ {
+		w += l.colWidth[x]
+	}
+	return w
+}
+
+// drawLabel writes an edge label centred on its stretch of path, over the
+// line itself. This is drawTextOnLine from upstream.
+//
+// On a vertical stretch, an edge running down puts its label in the upper
+// part and one running up in the lower part, so that the labels of two
+// edges between the same pair of nodes do not land on each other.
 func (l *layout) drawLabel(c *canvas, r *route) {
 	if r.edge.Label == "" || len(r.path) < 2 {
 		return
 	}
-	i := len(r.path) / 2
-	mid := l.center(r.path[i])
-	n := utf8.RuneCountInString(r.edge.Label)
+	a, b := l.center(r.labelLine[0]), l.center(r.labelLine[1])
+	minX, maxX := min(a.x, b.x), max(a.x, b.x)
+	minY, maxY := min(a.y, b.y), max(a.y, b.y)
+	midX := minX + (maxX-minX)/2
+	midY := minY + (maxY-minY)/2
 
-	var spots []gridPos
-	if bearing(l.center(r.path[i-1]), mid) == dirUp || bearing(l.center(r.path[i-1]), mid) == dirDown {
-		spots = []gridPos{
-			{mid.x - n - 1, mid.y},
-			{mid.x + 2, mid.y},
-			{mid.x - n - 1, mid.y - 1},
-			{mid.x + 2, mid.y - 1},
-		}
-	} else {
-		spots = []gridPos{
-			{mid.x - n/2, mid.y - 1},
-			{mid.x - n/2, mid.y + 1},
-			{mid.x - n/2, mid.y - 2},
+	if minX == maxX {
+		startY, endY := r.path[0].y, r.path[len(r.path)-1].y
+		shift := max(1, (maxY-minY)/4)
+		switch {
+		case endY < startY:
+			midY += shift
+		case endY > startY:
+			midY -= shift
 		}
 	}
 
-	for _, at := range spots {
-		// The inside of a box looks blank but belongs to the node — a label
-		// dropped in there would read as that node's text.
-		if l.overlapsNode(at.x, at.y, n) {
-			continue
+	lines := labelLines(r.edge.Label)
+	top := midY - (len(lines)-1)/2
+	for i, line := range lines {
+		n := utf8.RuneCountInString(line)
+		x := midX - n/2
+		if minY == maxY {
+			// Not upstream: on a horizontal stretch the label keeps a cell
+			// of line on either side, clear of the attachment at the start
+			// and the arrowhead at the end, which otherwise it may cover.
+			x = max(minX+2, min(x, maxX-2-n))
 		}
-		if c.textIfFree(at.x, at.y, r.edge.Label) {
-			return
-		}
+		c.text(x, top+i, line)
 	}
 }
 

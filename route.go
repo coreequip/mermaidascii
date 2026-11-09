@@ -142,6 +142,9 @@ type route struct {
 	path     []gridPos
 	startDir dir
 	endDir   dir
+	// labelLine is the stretch of path the edge label goes on; see
+	// placeLabel. Unset for an edge without a label.
+	labelLine [2]gridPos
 }
 
 // routeEdges finds a way for every edge.

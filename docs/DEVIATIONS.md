@@ -33,13 +33,18 @@ An edge that runs against the flow picks a different attachment point than
 upstream, so the detour comes out on the other side of the diagram. The
 picture is correct, just mirrored.
 
-**Edge label placement** — `flow-edge-labels`.
-Labels are placed beside the line at its midpoint, and dropped when nothing
-fits there. Upstream puts them further along the line and makes room for
-them, so a label never goes missing. Here, a horizontal edge between two
-close neighbours has no free row and loses its label.
-
 ## Deliberate choices
+
+**Edge labels widen the space between nodes, never a node.** As upstream,
+a label goes on the last stretch of its edge that is wide enough, and the
+grid grows so it fits. Upstream widens the middle column of that stretch
+even when a node spans it; it then draws the box at its own size and leaves
+a gap before the edge's attachment (`│ Gültig? │  ├──ja──►`). Here boxes
+fill their grid cells, so the same column would widen the box and put the
+label on its border. `labelColumn` therefore widens the free column closest
+to the middle. On a horizontal stretch the label also keeps a cell of line
+to either side, clear of attachment and arrowhead. Vertical labels are
+unaffected and match upstream byte for byte.
 
 **Label width is counted in runes.** `labelWidth` counts characters, so
 "Größe" is five wide. Characters that occupy two terminal columns — CJK, most
